@@ -1,0 +1,311 @@
+/* ===== Cấu trúc tổng thể ===== */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont,
+    sans-serif;
+  /* nền xanh rất nhạt, hợp với panel trong MapComponent */
+  background: #ecfdf5;
+  color: #0f172a;
+}
+
+.app-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* ===== Header trên cùng (xanh ngọc BHX – không trùng sidebar) ===== */
+.app-header {
+  height: 52px;
+  background: linear-gradient(90deg, #0fb97d 0%, #0aa96b 45%, #089462 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+  border-bottom: 2px solid #a7f3d0;
+}
+
+.app-logo {
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+}
+
+/* ===== Menu điều hướng ===== */
+.app-nav {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  font-size: 13px;
+}
+
+.app-nav button {
+  position: relative;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #fffbea; /* chữ trắng ngà */
+  text-decoration: none;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    transform 0.1s ease;
+}
+
+/* Gạch chân riêng từng mục bằng pseudo-element */
+.app-nav button::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 2px;
+  height: 2px;
+  border-radius: 999px;
+  background: #fef9c3; /* vàng nhạt */
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.18s ease;
+}
+
+.app-nav button:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.app-nav button:hover::after {
+  transform: scaleX(1);
+}
+
+/* Mục đang chọn (active) */
+.app-nav .active {
+  background: #fde047; /* vàng chủ đạo cho tab đang chọn */
+  color: #14532d !important;
+}
+
+.app-nav .active::after {
+  background: transparent;
+  transform: scaleX(0); /* không cần gạch chân khi đã active */
+}
+
+/* ===== Main area ===== */
+.app-main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.map-wrapper {
+  flex: 1;
+  min-height: 0;
+}
+
+/* ===== TRANG CHỦ ===== */
+.home-wrapper {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 32px 24px;
+}
+
+.home-layout {
+  width: 100%;
+  max-width: 1120px;
+  display: flex;
+  gap: 28px;
+}
+
+/* Cột trái */
+.home-left {
+  flex: 1.15;
+  background: #fefce8;
+  border-radius: 18px;
+  padding: 24px 28px 22px;
+  box-shadow: 0 18px 35px rgba(15, 23, 42, 0.18);
+  border: 1px solid #facc15;
+}
+
+.home-pill {
+  display: inline-flex;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #166534;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.home-title {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.3;
+  color: #14532d;
+}
+
+.home-subtitle {
+  margin-top: 8px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #374151;
+}
+
+.home-list {
+  margin: 6px 0 0;
+  padding-left: 20px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #1f2933;
+}
+
+.home-actions {
+  margin-top: 14px;
+}
+
+.home-cta {
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: none;
+  background: #16a34a;
+  color: #fefce8;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+  box-shadow: 0 10px 20px rgba(22, 163, 74, 0.35);
+  transition: background 0.18s ease, transform 0.1s ease,
+    box-shadow 0.18s ease;
+}
+
+.home-cta:hover {
+  background: #15803d;
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(22, 163, 74, 0.45);
+}
+
+.home-note {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #4b5563;
+}
+
+/* Cột phải: feature cards */
+.home-right {
+  flex: 0.95;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.home-feature {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 12px 14px;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+  border: 1px solid #e2e8f0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: #374151;
+}
+
+.home-feature-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.home-feature h3 {
+  margin: 0;
+  font-size: 14px;
+  color: #14532d;
+}
+
+.home-feature-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: #ecfdf5;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.home-tag {
+  display: inline-flex;
+  margin-top: 2px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e0f2fe;
+  color: #075985;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Leaflet map phải full khung */
+#map,
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* Popup Leaflet: ảnh trong popup gọn đẹp */
+.leaflet-popup-content img {
+  max-width: 220px;
+  max-height: 140px;
+  border-radius: 6px;
+  display: block;
+}
+
+/* Z-index fix cho control Leaflet (đè lên tile) */
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 900 !important;
+}
+
+/* ===== Responsive cơ bản ===== */
+@media (max-width: 992px) {
+  .app-header {
+    padding: 0 12px;
+  }
+  .app-logo {
+    font-size: 15px;
+  }
+  .app-nav {
+    gap: 14px;
+    font-size: 12px;
+  }
+  .home-layout {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-main {
+    flex-direction: column;
+  }
+  .app-header {
+    height: 50px;
+  }
+  .home-wrapper {
+    padding: 18px 12px;
+  }
+  .home-left {
+    padding: 18px 18px 16px;
+  }
+}

@@ -1,0 +1,75 @@
+<!-- frontend/public/index.html -->
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Title -->
+    <title>WebGIS Ninh Thuận – Đề xuất vị trí mở Bách Hóa Xanh</title>
+
+    <!-- App Icons / Manifest (Create React App compatible) -->
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <meta name="theme-color" content="#16a34a" />
+
+    <!-- SEO -->
+    <meta
+      name="description"
+      content="Hệ thống WebGIS phân tích vị trí tiềm năng mở rộng mạng lưới Bách Hóa Xanh tại tỉnh Ninh Thuận: AHP, buffer, chồng lớp, thống kê và gợi ý vùng ưu tiên."
+    />
+    <meta
+      name="keywords"
+      content="WebGIS, Ninh Thuận, Bách Hóa Xanh, AHP, GIS, buffer, chồng lớp, đề xuất vị trí, PostGIS, Leaflet"
+    />
+    <meta name="author" content="WebGIS Ninh Thuận" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="WebGIS Ninh Thuận – Đề xuất vị trí mở Bách Hóa Xanh" />
+    <meta
+      property="og:description"
+      content="Bản đồ WebGIS hỗ trợ phân tích vị trí tiềm năng mở BHX tại Ninh Thuận (AHP + buffer chồng lớp + gợi ý vùng ưu tiên)."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="%PUBLIC_URL%/og-image.png" />
+    <meta property="og:url" content="/" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="WebGIS Ninh Thuận – Đề xuất vị trí mở Bách Hóa Xanh" />
+    <meta
+      name="twitter:description"
+      content="WebGIS phân tích vị trí mở BHX tại Ninh Thuận: AHP + buffer + chồng lớp + gợi ý vùng ưu tiên."
+    />
+    <meta name="twitter:image" content="%PUBLIC_URL%/og-image.png" />
+
+    <!-- Leaflet CSS -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+
+    <!-- Full-viewport app -->
+    <style>
+      html,
+      body,
+      #root {
+        height: 100%;
+        margin: 0;
+      }
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
+          sans-serif;
+        background: #ecfdf5; /* đồng bộ tone xanh BHX */
+        color: #0f172a;
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>Bạn cần bật JavaScript để chạy ứng dụng này.</noscript>
+    <div id="root"></div>
+  </body>
+</html>

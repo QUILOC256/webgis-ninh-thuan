@@ -1,0 +1,7 @@
+*.zip
+WEBGISAPP/*.zip
+node_modules/
+.env
+.env.*
+dist/
+build/

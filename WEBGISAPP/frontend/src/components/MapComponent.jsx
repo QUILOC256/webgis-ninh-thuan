@@ -1,17 +1,9 @@
 // src/components/MapComponent.jsx
 // =============================================================
 // =============  MAP COMPONENT FULL FEATURE (AHP + SUGGEST) ====
-// =============  ✅ Chỉ còn 2 nền bản đồ: OSM + Vệ tinh =========
-// =============  ✅ Tách nút: "Tính AHP" & "Gợi ý mở BHX" ======
-// =============  ✅ Gợi ý BHX: chọn "Rất tốt" hoặc "Tốt" =======
-// =============  ✅ Có nút Xóa gợi ý (remove highlight) ========
-// =============  ✅ AHP Saaty đúng: 1/9 1/7 1/5 1/3 1 3 5 7 9 ===
-// =============  ✅ UI AHP Modal đẹp: sticky row/col + badge CR ===
-// =============  ✅ BHX popup thêm dòng: "Tên BHX (cập nhật)" =====
-// =============  ✅ FIX lỗi toLowerCase() cho txt không phải string =======
-// =============  ✅ FIX filter BHX: ưu tiên ten_bach_h =====================
-// =============  ✅ UPDATE: tên checkbox lớp dữ liệu theo label VN =========
-// =============  ✅ UPDATE: sắp xếp checkbox đúng thứ tự như ảnh bạn gửi ====
+// =============  ✅ FIX 404: luôn gọi API qua BASE URL ==========
+// =============  ✅ BASE lấy từ REACT_APP_API_URL ===============
+// =============  ✅ Fallback BASE cho Production nếu thiếu .env ==
 // =============================================================
 
 import React, { useEffect, useRef, useState, useMemo } from "react";
@@ -20,7 +12,37 @@ import "leaflet/dist/leaflet.css";
 import html2canvas from "html2canvas";
 
 // =============================================================
-// API Backend
+// ✅ API BASE (QUAN TRỌNG: fix lỗi 404 khi deploy static site)
+// - Render Static Site / Netlify chỉ host FE, không có /api
+// - Phải gọi sang domain BE (Render Web Service)
+// =============================================================
+const DEFAULT_PROD_API = "https://webgis-ninh-thuan.onrender.com";
+
+const isBrowser = typeof window !== "undefined";
+const isLocalhost =
+  isBrowser && /localhost|127\.0\.0\.1/i.test(window.location.hostname);
+
+// Lấy base từ env (CRA). Nếu không có env mà đang production => fallback DEFAULT_PROD_API
+const RAW_BASE =
+  (typeof process !== "undefined" &&
+    process.env &&
+    (process.env.REACT_APP_API_URL || process.env.REACT_APP_API_BASE_URL)) ||
+  (!isLocalhost ? DEFAULT_PROD_API : "");
+
+// Chuẩn hóa base (bỏ / cuối)
+const API_BASE = String(RAW_BASE).trim().replace(/\/+$/, "");
+
+// Ghép base + path. Nếu path đã là URL tuyệt đối thì giữ nguyên.
+const withBase = (path) => {
+  const p = String(path || "").trim();
+  if (!p) return p;
+  if (/^https?:\/\//i.test(p)) return p;
+  if (!API_BASE) return p; // dev local có proxy vẫn chạy
+  return `${API_BASE}${p.startsWith("/") ? p : `/${p}`}`;
+};
+
+// =============================================================
+// API Backend (để dạng path, lúc fetch sẽ withBase())
 // =============================================================
 const API = {
   bhx: "/api/ninhthuan/bhx-ninhthuan",
@@ -41,7 +63,7 @@ const API = {
 };
 
 // =============================================================
-// ✅ Layer labels (hiển thị checkbox đúng nghĩa tiếng Việt)
+// ✅ Layer labels
 // =============================================================
 const LAYER_META = {
   bhx: { label: "BHX", hint: "Cửa hàng BHX hiện hữu" },
@@ -64,7 +86,6 @@ const LAYER_META = {
   buffer_ranhgioi: { label: "buffer_ranhgioi", hint: "Dân số / MDDS" },
 };
 
-// ✅ Đúng y như ảnh bạn gửi (grid 2 cột, đi theo từng hàng)
 const LAYER_ORDER = [
   "bhx",
   "cho",
@@ -82,7 +103,7 @@ const LAYER_ORDER = [
 ];
 
 // =============================================================
-// ✅ Basemap config (CHỈ 2 NỀN: OSM + VỆ TINH)
+// ✅ Basemap config
 // =============================================================
 const BASEMAPS = {
   osm: {
@@ -131,11 +152,11 @@ const POLYGON_LAYERS = [
 ];
 
 // =============================================================
-// UI style helpers (xanh – vàng BHX)
+// UI style helpers
 // =============================================================
 const CARD_SHADOW = "0 10px 25px rgba(15, 23, 42, 0.18)";
 const BORDER_SUBTLE = "1px solid #e2e8f0";
-const ACCENT = "#16a34a"; // xanh BHX
+const ACCENT = "#16a34a";
 
 const baseInputStyle = {
   width: "100%",
@@ -155,7 +176,6 @@ const smallInputStyle = {
   borderRadius: 8,
 };
 
-// nút CHÍNH – xanh BHX
 const primaryButtonStyle = {
   padding: "6px 10px",
   borderRadius: 999,
@@ -168,7 +188,6 @@ const primaryButtonStyle = {
   boxShadow: "0 4px 10px rgba(22,163,74,0.35)",
 };
 
-// nút nền sáng – viền xanh BHX
 const secondaryButtonStyle = {
   ...primaryButtonStyle,
   background: "#dcfce7",
@@ -177,21 +196,18 @@ const secondaryButtonStyle = {
   boxShadow: "none",
 };
 
-// nút đặc biệt "Gợi ý mở BHX"
 const highlightButtonStyle = {
   ...primaryButtonStyle,
   background: "#15803d",
   boxShadow: "0 4px 12px rgba(21,128,61,0.45)",
 };
 
-// nút "Tính AHP"
 const ahpButtonStyle = {
   ...primaryButtonStyle,
   background: "#0f766e",
   boxShadow: "0 4px 12px rgba(15,118,110,0.35)",
 };
 
-// nút "Xóa gợi ý"
 const dangerButtonStyle = {
   ...primaryButtonStyle,
   background: "#b91c1c",
@@ -201,15 +217,11 @@ const dangerButtonStyle = {
 // =============================================================
 // Helpers
 // =============================================================
-
-// ✅ lấy giá trị đầu tiên có dữ liệu
 const pick = (...vals) =>
   vals.find((v) => v !== undefined && v !== null && String(v).trim() !== "");
 
-// Chuẩn hóa chuỗi: lowercase + bỏ dấu + trim
 const norm = (s) =>
-  (s || "")
-    .toString()
+  String(s ?? "")
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -220,7 +232,7 @@ const field = (label, value) =>
     ? `<div style="margin-bottom:2px"><b>${label}:</b> ${value}</div>`
     : "";
 
-// ✅ FIX lỗi: txt có thể là number/object/null -> ép String trước khi toLowerCase()
+// ✅ FIX chắc lỗi: txt không phải string
 const getColorByRatingText = (txt) => {
   const t = String(txt ?? "").toLowerCase();
 
@@ -230,14 +242,12 @@ const getColorByRatingText = (txt) => {
   if (t.includes("rất kém")) return "#b91c1c";
   if (t.includes("kém")) return "#f97316";
 
-  // MDDS: thưa / dày
   if (t.includes("thưa")) return "#f97316";
   if (t.includes("dày")) return "#16a34a";
 
   return "#9ca3af";
 };
 
-// lấy chuỗi mô tả mức cho từng lớp buffer/AHP
 const getRatingTextForPolygon = (layerId, p) => {
   switch (layerId) {
     case "bandovitri":
@@ -259,9 +269,7 @@ const getRatingTextForPolygon = (layerId, p) => {
   }
 };
 
-// style từng feature polygon theo lớp + mức đánh giá
 const stylePolygonFeature = (layerId, p) => {
-  // Ranh giới hành chính: chỉ viền đỏ
   if (layerId === "ranhgioi") {
     return {
       color: COLORS.ranhgioi,
@@ -427,10 +435,8 @@ const popupRanhGioi = (p) => `
 `;
 
 // =============================================================
-// AHP MODAL (Embedded) - tính bằng backend /api/ahp/*
+// AHP (backend)
 // =============================================================
-
-// ✅ Saaty đúng: 1/9 1/7 1/5 1/3 1 3 5 7 9
 const SAATY_OPTIONS = [
   { token: "1/9", value: 1 / 9, label: "1/9" },
   { token: "1/7", value: 1 / 7, label: "1/7" },
@@ -456,31 +462,32 @@ function tokenToValue(t) {
 }
 
 async function apiGet(url) {
-  const res = await fetch(url);
+  const res = await fetch(withBase(url), {
+    headers: { Accept: "application/json" },
+  });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || "GET failed");
+  if (!res.ok) throw new Error(data?.error || `GET failed: ${res.status}`);
   return data;
 }
 
 async function apiPost(url, body) {
-  const res = await fetch(url, {
+  const res = await fetch(withBase(url), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify(body),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || "POST failed");
+  if (!res.ok) throw new Error(data?.error || `POST failed: ${res.status}`);
   return data;
 }
 
-function makeIdentity(n) {
-  return Array.from({ length: n }, (_, i) =>
-    Array.from({ length: n }, (_, j) => (i === j ? 1 : 1))
-  );
+// ✅ default ma trận 1 (đúng để bắt đầu AHP)
+function makeOnes(n) {
+  return Array.from({ length: n }, () => Array.from({ length: n }, () => 1));
 }
 
 // =============================================================
-// ✅ AHP STYLES (đặt TRƯỚC AhpModal để tránh lỗi TDZ)
+// ✅ AHP MODAL styles
 // =============================================================
 const ahpStyles = {
   overlay: {
@@ -527,11 +534,7 @@ const ahpStyles = {
     lineHeight: "34px",
     boxShadow: "0 6px 18px rgba(2,6,23,0.08)",
   },
-  body: {
-    padding: 16,
-    overflow: "auto",
-    maxHeight: "calc(92vh - 64px)",
-  },
+  body: { padding: 16, overflow: "auto", maxHeight: "calc(92vh - 64px)" },
   toolbar: {
     display: "flex",
     gap: 10,
@@ -639,12 +642,7 @@ const ahpStyles = {
     boxShadow: "0 10px 28px rgba(22,163,74,0.10)",
   },
   resultTitle: { fontWeight: 950, marginBottom: 10, color: "#064e3b" },
-  metrics: {
-    display: "flex",
-    gap: 10,
-    flexWrap: "wrap",
-    alignItems: "center",
-  },
+  metrics: { display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" },
   badge: {
     display: "inline-flex",
     alignItems: "center",
@@ -687,10 +685,10 @@ function AhpModal({ open, onClose }) {
         const data = await apiGet("/api/ahp/criteria");
         const rows = data?.criteria || [];
         setCriteria(rows);
-        setMatrix(makeIdentity(rows.length));
+        setMatrix(makeOnes(rows.length));
         setResult(null);
       } catch (e) {
-        setErr(e.message || "Lỗi tải tiêu chí AHP");
+        setErr(e?.message || "Lỗi tải tiêu chí AHP");
       }
     })();
   }, [open]);
@@ -711,7 +709,7 @@ function AhpModal({ open, onClose }) {
         });
         if (alive) setResult(r);
       } catch (e) {
-        if (alive) setErr(e.message || "Lỗi tính AHP");
+        if (alive) setErr(e?.message || "Lỗi tính AHP");
       } finally {
         if (alive) setLoading(false);
       }
@@ -733,7 +731,7 @@ function AhpModal({ open, onClose }) {
 
   function resetMatrix() {
     if (!n) return;
-    setMatrix(makeIdentity(n));
+    setMatrix(makeOnes(n));
     setResult(null);
     setErr("");
   }
@@ -749,7 +747,7 @@ function AhpModal({ open, onClose }) {
       }));
       alert(`✅ Đã tải session mới nhất: ${data.session_id || "(trống)"}`);
     } catch (e) {
-      setErr(e.message || "Lỗi tải session");
+      setErr(e?.message || "Lỗi tải session");
     }
   }
 
@@ -762,7 +760,7 @@ function AhpModal({ open, onClose }) {
       const data = await apiPost("/api/ahp/save", { weights: result.weights });
       alert(`✅ Đã lưu trọng số AHP. session_id = ${data.session_id}`);
     } catch (e) {
-      setErr(e.message || "Lỗi lưu trọng số");
+      setErr(e?.message || "Lỗi lưu trọng số");
     }
   }
 
@@ -777,8 +775,8 @@ function AhpModal({ open, onClose }) {
           <div style={ahpStyles.titleWrap}>
             <div style={ahpStyles.title}>Bảng AHP tiêu chí lớn</div>
             <div style={ahpStyles.sub}>
-              Nhập ma trận so sánh cặp theo thang Saaty — tính AHP bằng backend{" "}
-              (<code>/api/ahp/calc</code>) — yêu cầu CR &lt; 10%
+              Nhập ma trận so sánh cặp theo thang Saaty — tính AHP bằng backend (
+              <code>/api/ahp/calc</code>) — yêu cầu CR &lt; 10%
             </div>
           </div>
           <button style={ahpStyles.close} onClick={onClose}>
@@ -821,9 +819,7 @@ function AhpModal({ open, onClose }) {
                 {labels.map((rowName, i) => (
                   <tr
                     key={rowName}
-                    style={{
-                      background: i % 2 === 0 ? "#ffffff" : "#fbfdff",
-                    }}
+                    style={{ background: i % 2 === 0 ? "#ffffff" : "#fbfdff" }}
                   >
                     <th style={ahpStyles.rowHead}>{rowName}</th>
 
@@ -942,7 +938,6 @@ const MapComponent = () => {
 
   const [openAhpModal, setOpenAhpModal] = useState(false);
 
-  // ✅ Visible mặc định: bật bandovitri + ranhgioi + bhx
   const [visible, setVisible] = useState(() => ({
     bhx: true,
     bandovitri: true,
@@ -960,9 +955,7 @@ const MapComponent = () => {
   const [bufferFilterLayer, setBufferFilterLayer] = useState("none");
   const [bufferFilterRating, setBufferFilterRating] = useState("all");
 
-  // ✅ chỉ 2 nền
   const [baseLayer, setBaseLayer] = useState("osm");
-
   const [suggestLevel, setSuggestLevel] = useState("Rất tốt");
 
   const defaultCenter = useMemo(() => [11.56, 108.99], []);
@@ -974,6 +967,7 @@ const MapComponent = () => {
     if (!container) return;
     if (mapRef.current) return;
 
+    // ✅ tránh lỗi "Map container is already initialized"
     if (container._leaflet_id) container._leaflet_id = null;
 
     const map = L.map(container, {
@@ -993,10 +987,10 @@ const MapComponent = () => {
     setTimeout(() => map.invalidateSize(), 200);
 
     return () => {
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
+      try {
+        map.remove();
+      } catch (_) {}
+      mapRef.current = null;
     };
   }, [defaultCenter, defaultZoom]);
 
@@ -1022,16 +1016,27 @@ const MapComponent = () => {
 
   // LOAD & DRAW LAYER
   const loadLayer = async (id, url) => {
-    if (cache.current[id]) return drawLayer(id, cache.current[id]);
+    try {
+      if (cache.current[id]) return drawLayer(id, cache.current[id]);
 
-    const res = await fetch(url);
-    if (!res.ok) {
-      console.error("Fetch error", id, res.status);
-      return;
+      const fullUrl = withBase(url);
+      const res = await fetch(fullUrl, {
+        headers: { Accept: "application/json" },
+      });
+
+      if (!res.ok) {
+        console.error("Fetch error", id, res.status, fullUrl);
+        return;
+      }
+
+      const geo = await res.json().catch(() => null);
+      if (!geo) return;
+
+      cache.current[id] = geo;
+      drawLayer(id, geo);
+    } catch (e) {
+      console.error("Fetch exception", id, e?.message || e);
     }
-    const geo = await res.json();
-    cache.current[id] = geo;
-    drawLayer(id, geo);
   };
 
   const drawLayer = (id, geo) => {
@@ -1045,7 +1050,6 @@ const MapComponent = () => {
 
     let layer;
 
-    // POINT
     if (POINT_LAYERS.includes(id)) {
       layer = L.geoJSON(geo, {
         pointToLayer: (_f, latlng) =>
@@ -1074,18 +1078,16 @@ const MapComponent = () => {
           return norm(nameCandidate || "").includes(search);
         },
         onEachFeature: (f, lyr) => {
-          lyr.bindPopup(popupPointByLayer(id, f.properties), { maxWidth: 260 });
+          lyr.bindPopup(popupPointByLayer(id, f.properties || {}), {
+            maxWidth: 260,
+          });
         },
       });
-    }
-    // LINE
-    else if (LINE_LAYERS.includes(id)) {
+    } else if (LINE_LAYERS.includes(id)) {
       layer = L.geoJSON(geo, {
         style: { color: COLORS[id], weight: 2 },
       });
-    }
-    // POLYGON
-    else if (POLYGON_LAYERS.includes(id)) {
+    } else if (POLYGON_LAYERS.includes(id)) {
       layer = L.geoJSON(geo, {
         style: (feat) => stylePolygonFeature(id, feat.properties || {}),
         filter: (f) => {
@@ -1217,18 +1219,15 @@ const MapComponent = () => {
         try {
           const b = lyr.getBounds();
           if (b && b.isValid()) bounds = bounds ? bounds.extend(b) : b;
-        } catch (e) {}
+        } catch (_) {}
       }
     });
 
-    if (
-      suggestLayerRef.current &&
-      typeof suggestLayerRef.current.getBounds === "function"
-    ) {
+    if (suggestLayerRef.current && typeof suggestLayerRef.current.getBounds === "function") {
       try {
         const b2 = suggestLayerRef.current.getBounds();
         if (b2 && b2.isValid()) bounds = bounds ? bounds.extend(b2) : b2;
-      } catch (e) {}
+      } catch (_) {}
     }
 
     if (bounds && bounds.isValid()) map.fitBounds(bounds);
@@ -1237,7 +1236,13 @@ const MapComponent = () => {
   const exportMap = async () => {
     const mapDiv = mapElRef.current;
     if (!mapDiv) return;
-    const canvas = await html2canvas(mapDiv);
+
+    const canvas = await html2canvas(mapDiv, {
+      useCORS: true,
+      backgroundColor: null,
+      scale: 2,
+    });
+
     const a = document.createElement("a");
     a.download = "webgis_ninhthuan.png";
     a.href = canvas.toDataURL("image/png");
@@ -1282,7 +1287,6 @@ const MapComponent = () => {
     if (!map) return;
 
     const fs = cache.current.bandovitri?.features || [];
-
     if (!fs.length) {
       alert(
         'Chưa có dữ liệu lớp "bandovitri". Hãy bật lớp "Bản đồ vị trí" trong mục Lớp dữ liệu trước khi gợi ý.'
@@ -1310,7 +1314,7 @@ const MapComponent = () => {
         const isRatTot = norm(suggestLevel) === norm("Rất tốt");
         return isRatTot
           ? { color: "#14532d", weight: 3.0, fillColor: "#22c55e", fillOpacity: 0.48 }
-          : { color: "#166534", weight: 2.6, fillColor: "#86efac", fillOpacity: 0.40 };
+          : { color: "#166534", weight: 2.6, fillColor: "#86efac", fillOpacity: 0.4 };
       },
       onEachFeature: (f, lyr) => {
         const p = f?.properties || {};
@@ -1608,7 +1612,6 @@ const MapComponent = () => {
             </div>
           </div>
 
-          {/* ✅ UPDATE: checkbox hiển thị đúng tên + đúng thứ tự */}
           <div style={{ marginBottom: 10, padding: 8, borderRadius: 10, background: "#ffffff", border: BORDER_SUBTLE }}>
             <b style={{ fontSize: 12 }}>Lớp dữ liệu</b>
 
@@ -1635,13 +1638,9 @@ const MapComponent = () => {
                     <input
                       type="checkbox"
                       checked={!!visible[id]}
-                      onChange={(e) =>
-                        setVisible((s) => ({ ...s, [id]: e.target.checked }))
-                      }
+                      onChange={(e) => setVisible((s) => ({ ...s, [id]: e.target.checked }))}
                     />
-                    <span style={{ fontWeight: 700, color: "#0f172a" }}>
-                      {label}
-                    </span>
+                    <span style={{ fontWeight: 700, color: "#0f172a" }}>{label}</span>
                   </label>
                 );
               })}
@@ -1829,6 +1828,11 @@ const MapComponent = () => {
             Gợi ý: Tốt
           </li>
         </ul>
+
+        {/* debug nhỏ để bạn kiểm tra nhanh base */}
+        <div style={{ marginTop: 10, fontSize: 11, opacity: 0.85 }}>
+          <b>API Base:</b> {API_BASE || "(đang dùng relative/proxy)"}
+        </div>
       </aside>
     </div>
   );
